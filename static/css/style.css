@@ -1,0 +1,929 @@
+@charset "UTF-8";
+/* ============================================================
+   电商销售数据可视化平台 · 全局样式
+   ------------------------------------------------------------
+   设计来源：UI UX Pro Max（--design-system，density 8 / variance 5 / motion 3）
+   风格    ：Data-Dense Dashboard（数据密集型仪表盘）
+   令牌文件：design-system/ecommercedashboard/MASTER.md
+   ------------------------------------------------------------
+   职责划分：
+     Bootstrap 5.3.0  → 栅格与响应式骨架
+     本文件           → 设计令牌、布局、组件外观、无障碍与动效
+   ============================================================ */
+
+/* ==================== 1. 设计令牌（Design Tokens） ==================== */
+/* 颜色全部以 CSS 变量形式声明，禁止在组件中直接写死十六进制色值 */
+:root {
+    /* 主色与语义色 */
+    --color-primary: #1E40AF;
+    --color-on-primary: #FFFFFF;
+    --color-secondary: #3B82F6;
+    --color-on-secondary: #000000;
+    --color-accent: #D97706;
+    --color-on-accent: #000000;
+
+    /* 背景与前景 */
+    --color-background: #F8FAFC;
+    --color-foreground: #1E3A8A;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #1E3A8A;
+
+    /* 中性色 */
+    --color-muted: #E9EEF6;
+    --color-muted-foreground: #475569;
+    --color-border: #DBEAFE;
+
+    /* 状态色 */
+    --color-destructive: #DC2626;
+    --color-on-destructive: #FFFFFF;
+    --color-ring: #1E40AF;
+
+    /* 间距刻度（density 8/10：紧凑仪表盘，8-32px） */
+    --space-xs: 0.125rem;   /* 2px  */
+    --space-sm: 0.25rem;    /* 4px  */
+    --space-md: 0.5rem;     /* 8px  */
+    --space-lg: 0.75rem;    /* 12px */
+    --space-xl: 1rem;       /* 16px */
+    --space-2xl: 1.5rem;    /* 24px */
+    --space-3xl: 2rem;      /* 32px */
+
+    /* 阴影层级 */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* 圆角 */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* 动效（motion 3/10：克制，150-300ms） */
+    --motion-fast: 150ms;
+    --motion-base: 200ms;
+    --motion-slow: 300ms;
+    --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    /* 侧边栏宽度 */
+    --sidebar-width: 240px;
+
+    /* 字体栈：拉丁字符用 Fira Sans，中文自动回退到系统黑体 */
+    --font-body: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial,
+                 sans-serif;
+    /* 数据/数字使用等宽字体，保证数字纵向对齐（仪表盘可读性关键） */
+    --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Consolas,
+                 "Liberation Mono", monospace;
+}
+
+/* ==================== 2. 基础重置与全局排版 ==================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    /* 平滑滚动，配合图表容器的滚动行为 */
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    /* 正文基准 16px，行高 1.5（可访问性基线） */
+    font-size: 16px;
+    line-height: 1.5;
+    /* 禁止出现横向滚动条 */
+    overflow-x: hidden;
+}
+
+/* 键盘焦点必须可见（Pre-Delivery Checklist 要求） */
+:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* 所有可点击元素都要有 pointer 光标 */
+a,
+button,
+[role="button"] {
+    cursor: pointer;
+}
+
+/* ==================== 3. 整体布局：侧边栏 + 主内容区 ==================== */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ---------------- 侧边栏 ---------------- */
+.app-sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    background-color: var(--color-foreground);
+    color: var(--color-on-primary);
+    padding: var(--space-xl) 0;
+    /* 侧边栏固定在视口，主内容区独立滚动 */
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* 侧边栏系统标题 */
+.sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 0 var(--space-xl) var(--space-xl);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 标题左侧的品牌标识（纯 CSS 方块，不使用 emoji） */
+.sidebar-title .brand-mark {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+        135deg, var(--color-secondary), var(--color-accent)
+    );
+}
+
+/* 导航项 */
+.app-sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: rgba(255, 255, 255, 0.78);
+    padding: var(--space-lg) var(--space-xl);
+    font-size: 15px;
+    border-radius: 0;
+    border-left: 3px solid transparent;
+    transition: background-color var(--motion-fast) var(--ease-out),
+                color var(--motion-fast) var(--ease-out),
+                border-color var(--motion-fast) var(--ease-out);
+}
+
+/* 悬浮与激活态 */
+.app-sidebar .nav-link:hover {
+    color: var(--color-on-primary);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.app-sidebar .nav-link.active {
+    color: var(--color-on-primary);
+    background-color: rgba(59, 130, 246, 0.22);
+    border-left-color: var(--color-accent);
+    font-weight: 600;
+}
+
+/* 导航图标统一尺寸（SVG，不使用 emoji） */
+.app-sidebar .nav-icon {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+}
+
+/* ---------------- 主内容区 ---------------- */
+.app-main {
+    flex: 1 1 auto;
+    /* min-width:0 配合 flex 布局，防止内容撑破容器产生横向滚动 */
+    min-width: 0;
+    padding: var(--space-2xl);
+}
+
+/* ==================== 3.5 顶部用户栏 ==================== */
+/* 位于主内容区顶部：左侧显示当前用户与角色，右侧为退出登录按钮 */
+.app-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xl);
+    /* 用下边距与边框把用户栏和内容区分隔开 */
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+}
+
+/* 头像：取用户名首字母，纯 CSS 圆形色块 */
+.user-avatar {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-foreground);
+    /* 用户名过长时省略，避免撑破顶栏 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 角色徽章：不依赖颜色单独传达含义，始终带文字说明 */
+.role-badge {
+    flex: 0 0 auto;
+    padding: 2px var(--space-md);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.role-badge-admin {
+    background-color: rgba(217, 119, 6, 0.12);
+    color: var(--color-accent);
+    border-color: rgba(217, 119, 6, 0.35);
+}
+
+.role-badge-user {
+    background-color: var(--color-muted);
+    color: var(--color-muted-foreground);
+    border-color: var(--color-border);
+}
+
+/* 退出登录按钮 */
+.btn-logout {
+    flex: 0 0 auto;
+    padding: var(--space-md) var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-card);
+    color: var(--color-muted-foreground);
+    font-size: 13px;
+    text-decoration: none;
+    transition: background-color var(--motion-fast) var(--ease-out),
+                color var(--motion-fast) var(--ease-out),
+                border-color var(--motion-fast) var(--ease-out);
+}
+
+.btn-logout:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+    border-color: var(--color-destructive);
+    color: var(--color-destructive);
+}
+
+/* ==================== 3.6 登录页 ==================== */
+.login-wrapper {
+    /* 用最小高度让登录卡片在视口内垂直居中 */
+    min-height: calc(100vh - 4rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-2xl);
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.login-brand-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.login-title {
+    margin: 0 0 var(--space-sm);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.login-subtitle {
+    margin: 0 0 var(--space-xl);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+}
+
+/* 登录失败的错误提示 */
+.alert-error {
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
+    border-radius: var(--radius-md);
+    background-color: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    color: var(--color-destructive);
+    font-size: 13px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+.form-input {
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--color-foreground);
+    background-color: var(--color-card);
+    transition: border-color var(--motion-fast) var(--ease-out),
+                box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    /* 用 primary 的半透明色做聚焦光环 */
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
+}
+
+.btn-login {
+    margin-top: var(--space-sm);
+    padding: var(--space-lg) var(--space-xl);
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    transition: background-color var(--motion-base) var(--ease-out);
+}
+
+.btn-login:hover {
+    background-color: #1B3899;
+}
+
+/* 演示账号提示区 */
+.login-hint {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-xl);
+    padding-top: var(--space-lg);
+    border-top: 1px dashed var(--color-border);
+    font-size: 12px;
+    color: var(--color-muted-foreground);
+}
+
+.login-hint-title {
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+/* 数据管理页的权限说明列表 */
+.perm-list {
+    margin: 0;
+    padding-left: var(--space-xl);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+    line-height: 1.9;
+}
+
+/* ==================== 4. 页面标题与卡片 ==================== */
+.page-title {
+    margin: 0 0 var(--space-lg);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.page-subtitle {
+    margin: 0 0 var(--space-xl);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+}
+
+/* 通用卡片 */
+.card {
+    background-color: var(--color-card);
+    color: var(--color-card-foreground);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--motion-base) var(--ease-out);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-xl);
+    background-color: transparent;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: var(--space-lg);
+}
+
+/* 卡片标题右侧的操作提示文字（如「悬浮查看金额」） */
+.chart-hint {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-muted-foreground);
+}
+
+/* ---------------- KPI 数据卡片 ---------------- */
+.stat-card {
+    border-left: 3px solid var(--color-primary);
+}
+
+.stat-card .card-body {
+    padding: var(--space-xl);
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+    margin-bottom: var(--space-md);
+}
+
+/* 卡片数值：等宽字体 + 表格数字，保证多行卡片数字对齐 */
+.stat-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--color-primary);
+}
+
+.stat-unit {
+    margin-left: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--color-muted-foreground);
+}
+
+/* ==================== 5. 图表容器与加载状态 ==================== */
+.chart-box {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+/* TOP10 横向柱状图需要更高容器 */
+.chart-box-lg {
+    height: 420px;
+}
+
+/* 加载中：旋转指示器（Key Effects: data loading spinners） */
+.chart-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+    background-color: var(--color-card);
+}
+
+.chart-loading .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 加载失败或数据为空时的降级提示（避免空白屏幕） */
+.chart-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+    background-color: var(--color-card);
+}
+
+.chart-empty .chart-empty-title {
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+/* ==================== 5.5 数据管理页（管理员专属） ==================== */
+/* 包含：数据库异常提示条、页签、搜索表单、数据表格与分页器 */
+
+/* ---- 数据库异常提示条 ---- */
+/* 出现在页面顶部，用于区分「数据库连不上」与「系统里没有数据」 */
+.db-alert {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid var(--color-destructive);
+    border-left-width: 4px;
+    border-radius: var(--radius-md);
+    background-color: #FEF2F2;
+    color: #7F1D1D;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.db-alert code {
+    padding: 0 var(--space-sm);
+    border-radius: var(--radius-sm);
+    background-color: rgba(220, 38, 38, 0.1);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+/* ---- 卡片头部：页签与搜索表单横向排布，窄屏自动换行 ---- */
+.admin-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+}
+
+/* ---- 页签按钮组 ---- */
+.tab-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tab-item {
+    display: inline-block;
+    padding: var(--space-md) var(--space-xl);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-card);
+    color: var(--color-muted-foreground);
+    font-size: 13px;
+    text-decoration: none;
+    /* 可点击元素必须具备指针反馈与过渡（UX 规范） */
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-out),
+                color var(--motion-fast) var(--ease-out),
+                border-color var(--motion-fast) var(--ease-out);
+}
+
+.tab-item:hover {
+    border-color: var(--color-secondary);
+    color: var(--color-primary);
+}
+
+.tab-item-active,
+.tab-item-active:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+}
+
+/* ---- 搜索表单 ---- */
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* 搜索框：复用登录页输入框样式，仅缩小尺寸以适配卡片头部 */
+.form-input-sm {
+    width: 200px;
+    padding: var(--space-md) var(--space-lg);
+    font-size: 13px;
+}
+
+.btn-search {
+    padding: var(--space-md) var(--space-xl);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.btn-search:hover {
+    background-color: var(--color-secondary);
+}
+
+/* 清除按钮：次级操作，使用描边样式弱化视觉权重 */
+.btn-clear {
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-muted-foreground);
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--motion-fast) var(--ease-out),
+                color var(--motion-fast) var(--ease-out);
+}
+
+.btn-clear:hover {
+    border-color: var(--color-secondary);
+    color: var(--color-primary);
+}
+
+/* ---- 数据表格 ---- */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table thead th {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 2px solid var(--color-border);
+    color: var(--color-foreground);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.data-table tbody td {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-muted-foreground);
+    /* 数值列使用等宽字体，保证多行数字纵向对齐 */
+    font-family: var(--font-mono);
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--color-muted);
+}
+
+/* 表头排序入口 */
+.th-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease-out);
+}
+
+.th-sort:hover {
+    color: var(--color-secondary);
+}
+
+/* 当前排序列高亮 */
+.th-sort-active {
+    color: var(--color-primary);
+}
+
+.th-sort-active::after {
+    content: "↓";
+    font-size: 12px;
+}
+
+/* 表格空态：跨列居中提示 */
+.table-empty {
+    padding: var(--space-2xl) var(--space-xl);
+    color: var(--color-muted-foreground);
+    text-align: center;
+}
+
+/* ---- 分页器 ---- */
+.pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+    font-size: 13px;
+    color: var(--color-muted-foreground);
+}
+
+.pagination-links {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.page-link {
+    padding: var(--space-sm) var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-card);
+    color: var(--color-primary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--motion-fast) var(--ease-out),
+                background-color var(--motion-fast) var(--ease-out);
+}
+
+.page-link:hover {
+    border-color: var(--color-secondary);
+    background-color: var(--color-muted);
+}
+
+/* 禁用态：首尾页时不可点击，降低视觉权重 */
+.page-link-disabled {
+    border-color: var(--color-border);
+    background-color: var(--color-muted);
+    color: #94A3B8;
+    cursor: not-allowed;
+}
+
+/* ==================== 6. 响应式适配 ==================== */
+/* 断点：1440 / 1024 / 768 / 375 */
+
+/* 大屏（>=1440px）：内容区限宽居中，避免图表被拉得过宽 */
+@media (min-width: 1440px) {
+    .app-main {
+        padding: var(--space-3xl);
+    }
+
+    .chart-box {
+        height: 360px;
+    }
+}
+
+/* 平板及以下（<992px）：侧边栏从纵向改为顶部横向栏 */
+@media (max-width: 991.98px) {
+    .app-wrapper {
+        flex-direction: column;
+    }
+
+    .app-sidebar {
+        flex: 0 0 auto;
+        width: 100%;
+        height: auto;
+        position: static;
+        padding: var(--space-md) var(--space-xl);
+        display: flex;
+        align-items: center;
+        gap: var(--space-xl);
+    }
+
+    .sidebar-title {
+        padding: 0;
+        border-bottom: none;
+        font-size: 15px;
+    }
+
+    /* 导航横向排列，可横向滚动但不撑破页面 */
+    .app-sidebar .nav {
+        flex-direction: row !important;
+        gap: var(--space-sm);
+        overflow-x: auto;
+    }
+
+    .app-sidebar .nav-link {
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        padding: var(--space-md) var(--space-lg);
+        white-space: nowrap;
+    }
+
+    .app-sidebar .nav-link.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--color-accent);
+    }
+}
+
+/* 手机（<768px）：缩小内边距与图表高度 */
+@media (max-width: 767.98px) {
+    .app-main {
+        padding: var(--space-lg);
+    }
+
+    .chart-box {
+        height: 260px;
+    }
+
+    .chart-box-lg {
+        height: 360px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    /* 数据管理页：搜索框与页签改为整行铺满，避免挤压变形 */
+    .admin-card-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-input-sm {
+        width: 100%;
+    }
+
+    .search-form {
+        flex-wrap: wrap;
+    }
+
+    /* 分页信息与翻页按钮纵向堆叠，避免小屏下换行错位 */
+    .pagination-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* 表格字号下调，保证 8 列订单表仍可读 */
+    .data-table {
+        font-size: 12px;
+    }
+
+    .data-table thead th,
+    .data-table tbody td {
+        padding: var(--space-sm) var(--space-md);
+    }
+}
+
+/* 小屏手机（<=375px）：进一步压缩，保证不出现横向滚动 */
+@media (max-width: 375px) {
+    .app-main {
+        padding: var(--space-md);
+    }
+
+    .stat-card .card-body {
+        padding: var(--space-lg);
+    }
+
+    .chart-box {
+        height: 220px;
+    }
+}
+
+/* ==================== 7. 无障碍：尊重减少动效偏好 ==================== */
+/* 用户在系统中开启「减少动效」时，关闭所有过渡与动画 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

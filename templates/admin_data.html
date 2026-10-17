@@ -1,0 +1,191 @@
+{# ============================================================
+   数据管理页 admin_data.html
+   ------------------------------------------------------------
+   权限：仅管理员可访问。
+        普通用户直接访问 /admin/data 时，
+        会由 utils/auth.py 的 admin_required 装饰器拦截并返回 403。
+
+   功能：以「页签 + 表格」形式浏览三张业务表的明细数据，
+        支持关键字搜索、按列排序与分页。
+
+   本模板集中体现 Jinja2 的三大核心特性：
+     1. 模板继承 → 首行 {% extends %} 复用 base.html 骨架，
+                    侧边栏与顶部用户栏由父模板按角色渲染；
+     2. 变量传递 → 使用路由传入的 overview / rows / pagination / tabs 等变量；
+     3. 循环渲染 → 概览卡片、页签按钮、表头、数据行均使用 {% for %} 渲染。
+   另使用 {% if %} 实现空数据提示与错误提示的条件渲染。
+
+   数据来源：
+     全部由 services/admin_service.py 经 Pandas 统计后传入，
+     模板中不存在任何硬编码的业务数据。
+
+   模板变量说明（由 routes/page_routes.py 的 admin_data() 传入）：
+     page_title    页面标题
+     current_role  当前登录角色
+     tabs          页签配置字典（键为页签名，值为包含列定义的配置）
+     active_tab    当前页签名
+     active_config 当前页签的配置（含 columns / empty_text / search_hint）
+     keyword       当前搜索关键字
+     sort_by       当前排序列
+     order         当前排序方向（asc / desc）
+     rows          当前页数据行列表
+     pagination    分页信息字典
+     overview      顶部概览卡片列表
+     error_msg     数据加载失败时的错误提示（正常为 None）
+   ============================================================ #}
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} · 电商销售数据可视化平台{% endblock %}
+
+{% block content %}
+
+<header class="mb-3">
+    <h1 class="page-title">{{ page_title }}</h1>
+    <p class="page-subtitle">
+        当前登录角色：{{ current_role }}。本页面仅管理员可见，普通用户访问将返回 403。
+    </p>
+</header>
+
+{# ===== 顶部概览卡片：循环渲染，数据由 Pandas 统计得出 ===== #}
+<div class="row g-3 mb-3">
+    {% for card in overview %}
+    <div class="col-6 col-sm-4 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-label">{{ card.label }}</div>
+                <div class="stat-value">
+                    {{ card.text }}{% if card.unit %}<span class="stat-unit">{{ card.unit }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    {# 概览统计失败（如数据库不可用）时给出提示而不是留白 #}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">概览数据加载失败，请检查数据库连接后刷新页面。</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+
+            {# ===== 卡片头部：页签切换 + 搜索表单 ===== #}
+            <div class="card-header admin-card-header">
+                {# --- 页签按钮：循环渲染 tabs 字典 --- #}
+                <ul class="tab-list" role="tablist">
+                    {% for tab_key, tab_config in tabs.items() %}
+                    <li>
+                        <a class="tab-item {% if tab_key == active_tab %}tab-item-active{% endif %}"
+                           role="tab"
+                           aria-selected="{% if tab_key == active_tab %}true{% else %}false{% endif %}"
+                           href="{{ url_for('page.admin_data', tab=tab_key) }}">
+                            {{ tab_config.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                {# --- 搜索表单：提交后回到第 1 页，避免停留在越界页码 --- #}
+                <form class="search-form" method="get"
+                      action="{{ url_for('page.admin_data') }}">
+                    <input type="hidden" name="tab" value="{{ active_tab }}">
+                    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                    <input type="hidden" name="order" value="{{ order }}">
+                    <input type="hidden" name="per_page" value="{{ pagination.per_page }}">
+                    <input class="form-input form-input-sm" type="search"
+                           name="keyword" value="{{ keyword }}"
+                           placeholder="{{ active_config.search_hint }}"
+                           aria-label="搜索">
+                    <button class="btn-search" type="submit">搜索</button>
+                    {% if keyword %}
+                    {# 有关键字时才显示「清除」入口，避免空状态下出现无效按钮 #}
+                    <a class="btn-clear" href="{{ url_for('page.admin_data', tab=active_tab) }}">清除</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="card-body">
+                {# ===== 数据加载失败的降级提示 ===== #}
+                {% if error_msg %}
+                <div class="table-empty">{{ error_msg }}</div>
+                {% endif %}
+
+                {# ===== 数据表格 ===== #}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                {% for column in active_config.columns %}
+                                <th>
+                                    {# 表头即排序入口：点击切换升降序 #}
+                                    <a class="th-sort {% if column.field == sort_by %}th-sort-active{% endif %}"
+                                       href="{{ url_for('page.admin_data',
+                                                        tab=active_tab,
+                                                        keyword=keyword,
+                                                        sort_by=column.field,
+                                                        order='asc' if (column.field == sort_by and order == 'desc') else 'desc',
+                                                        per_page=pagination.per_page) }}">
+                                        {{ column.label }}
+                                    </a>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr>
+                                {% for column in active_config.columns %}
+                                {# 单元格统一交给 cell 过滤器格式化，模板不写格式化逻辑 #}
+                                <td>{{ row[column.field]|cell(column.format) }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% else %}
+                            {# 无数据时跨列显示提示，避免出现空白表格 #}
+                            <tr>
+                                <td class="table-empty" colspan="{{ active_config.columns|length }}">
+                                    {% if error_msg %}
+                                        数据加载失败
+                                    {% elif keyword %}
+                                        未找到与「{{ keyword }}」匹配的数据，请调整关键字后重试
+                                    {% else %}
+                                        {{ active_config.empty_text }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {# ===== 分页器 ===== #}
+                <div class="pagination-bar">
+                    <span class="pagination-info">
+                        共 {{ pagination.total }} 条 · 第 {{ pagination.page }} / {{ pagination.total_pages }} 页
+                    </span>
+
+                    <span class="pagination-links">
+                        {% if pagination.has_prev %}
+                        <a class="page-link"
+                           href="{{ url_for('page.admin_data', tab=active_tab, keyword=keyword, page=pagination.page - 1, per_page=pagination.per_page, sort_by=sort_by, order=order) }}">上一页</a>
+                        {% else %}
+                        <span class="page-link page-link-disabled">上一页</span>
+                        {% endif %}
+
+                        {% if pagination.has_next %}
+                        <a class="page-link"
+                           href="{{ url_for('page.admin_data', tab=active_tab, keyword=keyword, page=pagination.page + 1, per_page=pagination.per_page, sort_by=sort_by, order=order) }}">下一页</a>
+                        {% else %}
+                        <span class="page-link page-link-disabled">下一页</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,130 @@
+{# ============================================================
+   数据看板首页 index.html
+   ------------------------------------------------------------
+   本模板继承 base.html，集中体现 Jinja2 三大核心特性：
+
+     1. 模板继承 → 首行 {% extends %} 复用父模板骨架，
+                    本页只覆写 title / content / scripts 三个 block，
+                    侧边栏与顶部用户栏由父模板统一渲染；
+     2. 变量传递 → 直接使用路由函数传入的 page_title、cards；
+     3. 循环渲染 → 用 {% for %} 遍历渲染顶部 KPI 数据卡片
+                    （侧边栏菜单的循环渲染位于 base.html 中）。
+
+   数据来源：
+     page_title / cards 由 routes/page_routes.py 传入；
+     四个图表的业务数据全部由 static/js/charts.js 通过 fetch 动态请求后端接口，
+     模板中不存在任何硬编码的业务数据。
+   ============================================================ #}
+{% extends "base.html" %}
+
+{# ---------- 覆写标题区块：使用路由传入的变量 ---------- #}
+{% block title %}{{ page_title }} · 电商销售数据可视化平台{% endblock %}
+
+{# ---------- 覆写主内容区块：KPI 卡片 + 四个图表容器 ---------- #}
+{% block content %}
+
+<header class="mb-3">
+    <h1 class="page-title">{{ page_title }}</h1>
+    <p class="page-subtitle">
+        数据来自后端 RESTful 接口，覆盖近 3 个月、全国 31 个省份的销售情况
+    </p>
+</header>
+
+{# 浏览器禁用 JS 时的降级提示，避免出现无解释的空白 #}
+<noscript>
+    <div class="alert alert-warning" role="alert">
+        当前浏览器已禁用 JavaScript，图表无法渲染；页面顶部的数据卡片仍可正常查看。
+    </div>
+</noscript>
+
+{# ===== 顶部 4 个 KPI 数据卡片：使用 for 循环渲染 ===== #}
+<div class="row g-3 mb-3">
+    {% for card in cards %}
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-label">{{ card.label }}</div>
+                <div class="stat-value">
+                    {{ card.text }}<span class="stat-unit">{{ card.unit }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    {# cards 为空（如接口异常）时给出提示，而不是留下一片空白 #}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">数据卡片加载失败，请检查数据库连接后刷新页面。</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# ===== 第一行：省份柱状图（约 60%） + 品类饼图（约 40%） ===== #}
+<div class="row g-3 mb-3">
+    <div class="col-12 col-xl-7">
+        <div class="card h-100">
+            <div class="card-header">
+                <span>省份销售额分布</span>
+                <span class="chart-hint">悬浮查看金额 · 可滚轮缩放</span>
+            </div>
+            <div class="card-body">
+                <div id="province_chart" class="chart-box" role="img"
+                     aria-label="各省份销售额柱状图，按销售额降序排列"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <span>品类销售额占比</span>
+                <span class="chart-hint">悬浮查看占比</span>
+            </div>
+            <div class="card-body">
+                <div id="category_chart" class="chart-box" role="img"
+                     aria-label="各品类销售额占比环形图"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ===== 第二行：每日销售趋势折线图（整宽） ===== #}
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <span>每日销售趋势</span>
+                <span class="chart-hint">拖拽下方滑块可缩放时间区间</span>
+            </div>
+            <div class="card-body">
+                <div id="trend_chart" class="chart-box" role="img"
+                     aria-label="每日销售额趋势折线图"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ===== 第三行：商品销量 TOP10 横向柱状图（整宽） ===== #}
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <span>商品销量 TOP10</span>
+                <span class="chart-hint">条形末端显示累计销量</span>
+            </div>
+            <div class="card-body">
+                <div id="top_chart" class="chart-box chart-box-lg" role="img"
+                     aria-label="商品销量前 10 名横向柱状图"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{# ---------- 覆写脚本区块：引入图表初始化脚本 ---------- #}
+{% block scripts %}
+{# 图表脚本放在 body 末尾，确保 DOM 与 ECharts 均已就绪 #}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

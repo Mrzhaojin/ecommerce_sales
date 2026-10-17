@@ -1,0 +1,83 @@
+{# ============================================================
+   登录页面 login.html
+   ------------------------------------------------------------
+   继承 base.html 基础布局：
+     - 未登录时父模板的侧边栏与顶部用户栏会自动隐藏，
+       因此登录页无需覆写 sidebar，天然呈现为独立居中卡片；
+     - 仅覆写 title 与 content 两个 block。
+
+   表单说明：
+     - action 保留 next 参数，登录成功后可跳回原本要访问的页面；
+     - 登录失败时由 error_msg 变量驱动错误提示的条件渲染。
+   模板变量：
+     page_title  页面标题
+     error_msg   错误提示文案（正常为 None）
+     db_error    是否为「数据库不可用」导致的失败（bool，可为未定义）
+
+   ============================================================ #}
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} · 电商销售数据可视化平台{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="login-card">
+
+        {# ---- 品牌区：与侧边栏一致的色块标识 ---- #}
+        <div class="login-brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="login-brand-name">电商销售数据可视化平台</span>
+        </div>
+
+        <h1 class="login-title">账号登录</h1>
+        <p class="login-subtitle">请使用分配的账号登录，本系统不提供注册功能</p>
+
+        {# ---- 错误提示：仅在 error_msg 存在时渲染（Jinja2 条件判断） ---- #}
+        {% if error_msg %}
+        <div class="alert-error" role="alert">
+            {{ error_msg }}
+        </div>
+
+        {# 数据库不可用时额外给出排查步骤，帮助快速定位问题 #}
+        {% if db_error %}
+        <ul class="perm-list">
+            <li>确认 MySQL 服务已启动且端口可访问</li>
+            <li>确认 <code>.env</code> 中的 DB_HOST / DB_USER / DB_PASSWORD 配置正确</li>
+            <li>确认已执行 <code>python data/init_db.py</code> 完成建库建表</li>
+        </ul>
+        {% endif %}
+        {% endif %}
+
+        {# ---- 登录表单 ---- #}
+        {# action 携带 next 参数：登录成功后跳回登录前访问的页面 #}
+        <form method="post"
+              action="{{ url_for('page.login', next=request.args.get('next', '')) }}"
+              class="login-form">
+
+            <div class="form-field">
+                <label class="form-label" for="username">用户名</label>
+                <input class="form-input" type="text" id="username"
+                       name="username" autocomplete="username"
+                       placeholder="请输入用户名" required autofocus>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="password">密码</label>
+                <input class="form-input" type="password" id="password"
+                       name="password" autocomplete="current-password"
+                       placeholder="请输入密码" required>
+            </div>
+
+            <button class="btn-login" type="submit">登 录</button>
+        </form>
+
+        {# ---- 演示账号提示：仅开发环境需要，上线前应删除 ---- #}
+        <div class="login-hint">
+            <span class="login-hint-title">演示账号</span>
+            <span>管理员：admin / admin123</span>
+            <span>普通用户：user / user123</span>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

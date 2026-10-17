@@ -1,0 +1,32 @@
+# ============================================================
+# 电商销售数据可视化平台 · 依赖清单
+# 说明：所有版本均已锁定，禁止随意升降级（详见 rule.md 第 2 章）
+# 安装：python -m pip install -r requirements.txt
+# ============================================================
+
+# ---------------- Web 框架 ----------------
+Flask==2.3.3
+Werkzeug==2.3.7
+Jinja2==3.1.2
+itsdangerous==2.1.2
+click==8.1.7
+
+# ---------------- 登录认证 ----------------
+# Flask-Login 用于会话登录与角色权限控制
+Flask-Login==0.6.3
+
+# ---------------- 数据库 ORM ----------------
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.21
+PyMySQL==1.1.0
+# MySQL 8 默认使用 caching_sha2_password 认证，PyMySQL 依赖此库完成认证
+cryptography==41.0.4
+
+# ---------------- 数据处理 ----------------
+pandas==2.0.3
+# 注意：pandas 2.0.3 编译于 NumPy 1.x ABI，必须限制 numpy<2.0，
+#       否则运行期会抛出 ImportError: numpy.dtype size changed
+numpy==1.26.4
+
+# ---------------- 配置管理 ----------------
+python-dotenv==1.0.0

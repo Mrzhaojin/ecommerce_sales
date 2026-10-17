@@ -1,0 +1,75 @@
+{# ============================================================
+   错误页 error.html
+   ------------------------------------------------------------
+   用途：统一承接 404（页面不存在）与 500（服务异常）两类错误，
+        由 app.py 中的 register_error_handlers() 注册并渲染。
+
+   设计目的：
+     Flask 在关闭 DEBUG 时展示的是简陋的默认错误页，
+     开启 DEBUG 时又会直接暴露带堆栈的调试页，
+     两者对最终用户都不友好。本页统一给出可读的中文提示与排查建议。
+
+   继承 base.html：侧边栏与顶部用户栏由父模板按登录态与角色渲染，
+   本页只覆写 title 与 content。
+
+   模板变量（由 app.py 的错误处理器传入）：
+     page_title   页面标题
+     error_code   HTTP 状态码（404 / 500）
+     error_title  错误主标题
+     error_detail 排查建议正文
+   ============================================================ #}
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} · 电商销售数据可视化平台{% endblock %}
+
+{% block content %}
+
+<header class="mb-3">
+    <h1 class="page-title">{{ page_title }}</h1>
+</header>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <span>{{ error_title }}</span>
+                {# 错误码以徽章形式呈现，便于用户反馈问题时引用 #}
+                <span class="chart-hint">错误码 {{ error_code }}</span>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">{{ error_detail }}</p>
+
+                {# ---- 常见排查步骤：静态文案，不涉及业务判断 ---- #}
+                <p class="mb-2 fw-semibold">可按以下步骤排查：</p>
+                <ol class="perm-list">
+                    <li>确认 MySQL 服务已启动且可连接</li>
+                    <li>确认 <code>.env</code> 中的 DB_HOST / DB_USER / DB_PASSWORD 配置正确</li>
+                    <li>确认已执行 <code>python data/init_db.py</code> 完成建库建表</li>
+                    <li>确认已执行 <code>python generate_data.py</code> 生成模拟数据</li>
+                </ol>
+
+                <div class="mt-3">
+                    {# 提供明确出路：返回首页重新进入 #}
+                    <a class="btn-logout" href="{{ url_for('page.index') }}">返回数据总览</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header"><span>接口错误说明</span></div>
+            <div class="card-body">
+                <ul class="perm-list">
+                    <li><code>/api/</code> 开头的接口出错时返回 JSON，不渲染本页</li>
+                    <li>未登录访问接口返回 401</li>
+                    <li>权限不足返回 403</li>
+                    <li>资源不存在返回 404</li>
+                    <li>服务端异常返回 500</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

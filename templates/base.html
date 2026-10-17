@@ -1,0 +1,157 @@
+{# ============================================================
+   父模板 base.html（Jinja2 模板继承的基类）
+   ------------------------------------------------------------
+   职责：定义页面骨架、公共依赖、侧边栏与顶部用户栏，
+        并通过 block 挖出可覆写的插槽。
+
+   本轮新增的 Jinja2 条件渲染：
+     1. 侧边栏整体        {% if current_user.is_authenticated %}
+                          未登录（如登录页）时侧边栏自动不渲染；
+     2. 菜单按角色可见    {% for %} 遍历 nav_items，
+                          内部用 {% if current_user.role in item.roles %}
+                          控制「数据管理」仅管理员可见；
+     3. 顶部用户栏        {% if current_user.is_authenticated %}
+                          显示用户名、角色徽章与退出登录按钮；
+     4. 角色文案          {% if current_user.is_admin %}管理员{% else %}普通用户{% endif %}
+
+   current_user 由 Flask-Login 自动注入模板上下文，无需视图函数传递。
+
+   可覆写的 block：title / styles / sidebar / content / scripts
+   ============================================================ #}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    {# 视口设置：启用响应式，且禁止禁用缩放（可访问性要求） #}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="电商销售数据可视化看板">
+
+    <title>{% block title %}电商销售数据可视化平台{% endblock %}</title>
+
+    {# ---- 字体：Fira Code（数字/标题）+ Fira Sans（正文） ---- #}
+    {# 说明：这两款字体不含中文字形，中文会自动回退到系统黑体， #}
+    {#      字体栈已在 style.css 中配置好回退顺序。             #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap">
+
+    {# ---- Bootstrap 5.3.0（CDN）：仅用于栅格与响应式布局 ---- #}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    {# ---- 项目自定义样式：设计令牌、布局、组件外观 ---- #}
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    {# ===== 整体布局：左侧侧边栏 + 右侧主内容区 ===== #}
+    <div class="app-wrapper">
+
+        {# ============================================================
+           侧边栏：仅在用户已登录时渲染
+           nav_items 由 utils/auth.py 的上下文处理器统一注入，
+           每项通过 roles 字段声明可见角色。
+           ============================================================ #}
+        {% block sidebar %}
+        {% if current_user.is_authenticated %}
+        <aside class="app-sidebar">
+            <div class="sidebar-title">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span>电商销售数据可视化</span>
+            </div>
+
+            <nav aria-label="主导航">
+                <ul class="nav flex-column">
+                    {# 循环渲染菜单，再按角色做可见性判断 #}
+                    {% for item in nav_items %}
+                        {% if current_user.role in item.roles %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == item.url %}active{% endif %}"
+                               href="{{ item.url }}"
+                               {% if request.path == item.url %}aria-current="page"{% endif %}>
+                                {# 图标使用内联 SVG（设计系统要求：禁止用 emoji 代替图标） #}
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.8"
+                                     aria-hidden="true" focusable="false">
+                                    <path d="{{ item.icon }}"
+                                          stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>{{ item.name }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
+        </aside>
+        {% endif %}
+        {% endblock %}
+
+        <main class="app-main">
+
+            {# ============================================================
+               数据库异常提示条
+               db_available 由 app.py 的 check_database() 在启动时检测得出，
+               并通过上下文处理器注入到所有模板。
+               数据库不可用时在此给出醒目提示，
+               避免用户把「数据库连不上」误判为「系统里没有数据」。
+               ============================================================ #}
+            {% if not db_available %}
+            <div class="db-alert" role="alert">
+                <strong>数据库连接异常</strong>
+                <span>
+                    页面数据无法加载。请检查 MySQL 是否已启动、
+                    <code>.env</code> 中的账号密码与库名是否正确，
+                    并确认已执行 <code>data/init_db.py</code> 与
+                    <code>generate_data.py</code>。
+                </span>
+            </div>
+            {% endif %}
+
+            {# ============================================================
+               顶部用户栏：仅在已登录时渲染
+               显示当前用户名、角色徽章与退出登录按钮
+               ============================================================ #}
+            {% if current_user.is_authenticated %}
+            <div class="app-topbar">
+                <div class="topbar-user">
+                    {# 用户名首字母作为头像（纯文本，不使用 emoji） #}
+                    <span class="user-avatar" aria-hidden="true">
+                        {{ current_user.username[:1]|upper }}
+                    </span>
+                    <span class="user-name">{{ current_user.username }}</span>
+                    {# 角色徽章：根据 is_admin 属性判断显示文案与配色 #}
+                    <span class="role-badge {% if current_user.is_admin %}role-badge-admin{% else %}role-badge-user{% endif %}">
+                        {% if current_user.is_admin %}管理员{% else %}普通用户{% endif %}
+                    </span>
+                </div>
+
+                <a class="btn-logout" href="{{ url_for('page.logout') }}">
+                    退出登录
+                </a>
+            </div>
+            {% endif %}
+
+            {# 主内容区：由子模板覆写 #}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {# ===== ECharts 5.4.3：优先 CDN，失败时回退到本地副本 ===== #}
+    {# 回退逻辑：CDN 加载成功时 window.echarts 已存在，不会执行 document.write；
+       若 CDN 不可达（如离线演示），则同步插入 static/vendor 下的本地备份，
+       保证图表不会因网络问题白屏。本地副本由 url_for 生成，路径可控。 #}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script>
+        window.echarts || document.write(
+            '<script src="{{ url_for('static', filename='vendor/echarts.min.js') }}"><\/script>'
+        );
+    </script>
+
+    {# ===== 页面级脚本插槽：子模板在此引入图表初始化脚本 ===== #}
+    {% block scripts %}{% endblock %}
+</body>
+</html>
